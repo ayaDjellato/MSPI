@@ -9,17 +9,21 @@ struct enregist_client {
     float T_arrival , T_service, T_start;
 }enregist_client;
 
-struct Node {
-    int data;
-    struct Node* next;
+
+
+struct Event {
+    int type;
+    float time;
+    struct Event* next;
 };
 
-struct Node* createNode(int data) {
-    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+struct Event* createNode(int type, float time) {
+    struct Event* newNode = (struct Event*)malloc(sizeof(struct Event));
     if (newNode == NULL) {
         printf("Memory allocation failed.\n");
         exit(1);
-    }  newNode->data = data;
+    }  newNode->type = type;
+      newNode ->time = time;
     newNode->next = NULL;
     return newNode;
 }
@@ -32,7 +36,8 @@ void display();
 struct enregist_client items[SIZE];
 
 int front = -1, rear = -1;
-int Tnow = 0, TService = 2;
+int Tnow = 0, TService = 2, T_start, T_arrival;
+int server = 0, num = 0;
 
 /* ///////////////////////////////////////////END OF DECLARATIONS ///////////////////////////////////////////////////*/
 
@@ -47,7 +52,7 @@ void enQueue(struct enregist_client *Client) {
       front = 0;
     rear++;
     items[rear] = *Client;
-    printf("\nInserted -> %d", Client);
+    printf("\nInserted -> %d\n", Client);
   }
 }
 
@@ -67,18 +72,21 @@ void display() {
     if (front == -1)
         printf("\nQueue is Empty!!");
     else {
-        printf("\nQueue elements: ");
+       
         for (int i = front; i <= rear; i++) {
-            printf(" Id >>  %d ", items[i].ID);
-            printf("Arrival >>  %f ", items[i].T_arrival);
-            printf("Service >>  %f ", items[i].T_service);
-            printf("Start >>  %f ", items[i].T_start);
+            printf("__________________________________________\n");
+            printf("Id >>  %d \n", items[i].ID);
+            printf("Arrival >>  %f \n", items[i].T_arrival);
+            printf("Service >>  %f \n", items[i].T_service);
+            printf("Start >>  %f \n", items[i].T_start);
+            
+
         }
     }
 }
 
-void insertAtBeginning(struct Node** headRef, int data) {
-    struct Node* newNode = createNode(data);
+void insertAtBeguinning_Event(struct Event** headRef, int type, float time) {
+    struct Event* newNode = createNode(type, time);
     newNode->next = *headRef;
     *headRef = newNode;
 }
@@ -87,10 +95,11 @@ void insertAtBeginning(struct Node** headRef, int data) {
 
 
 // Function to print the elements of the list
-void printList(struct Node* head) {
-    struct Node* temp = head;
+void printList(struct Event* head) {
+    struct Event* temp = head;
     while (temp != NULL) {
-        printf("%d ", temp->data);
+        printf("\ntype : %d ", temp->type);
+        printf("time : %f ", temp->time);
         temp = temp->next;
     }
     printf("\n");
@@ -103,10 +112,32 @@ void printList(struct Node* head) {
 /* ___________________________________Main work _____________________________________________________________*/
 void P_arrival(){
     struct enregist_client Client;
+    struct Event* head = NULL;
+
+
+    /*Client enters the queue */
+
     Client.T_arrival = Tnow;
     Client.T_service = TService;
-    
+    Client.ID = num;
+    Client.T_start = T_start;
 
+    enQueue(&Client);
+
+
+    /*Event Creation*/
+    /*Type of event 1: arrival , 2: start , 3: end*/
+    if(server == 0){
+
+    insertAtBeguinning_Event(&head, 2, Tnow+T_arrival);
+
+    }
+    
+    
+    insertAtBeguinning_Event(&head, 1, Tnow);
+
+    num = num +1;
+ 
 }
 
 /* __________________________________________END OF MAIN ___________________________________________________*/
@@ -116,30 +147,26 @@ int main() {
     printf("[TEST QUEUE >>>>>>>  CLIENTS ENREGISTRE] \n");
 
     struct enregist_client client1 = {1, 10.0, 2.0, 0.0};
-    struct enregist_client client2 = {2, 12.0, 3.0, 0.0};
-    struct enregist_client client3 = {3, 15.0, 1.0, 0.0};
-
+    P_arrival();
 
     printf("Enqueuing clients...\n");
     enQueue(&client1);
-    enQueue(&client2);
-    enQueue(&client3);
+    
 
     display();
 
 
-    printf("[TEST NODES >>>>>>>  EVENTS ENREGISTRE] \n");
+    printf("\n[TEST NODES >>>>>>>  EVENTS ENREGISTRE] \n");
 
-   struct Node* head = NULL;
+    struct Event* head2 = NULL;
 
     // Insert some elements into the list
-    insertAtBeginning(&head, 3);
-    insertAtBeginning(&head, 7);
-    insertAtBeginning(&head, 11);
+    //insertAtBeguinning_Event(&head, 1, 0.13);
+    
 
     // Print the elements of the list
     printf("List: ");
-    printList(head);
+    printList(head2);
 
     return 0;
 }
