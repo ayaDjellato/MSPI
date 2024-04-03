@@ -1,6 +1,7 @@
 #include<stdio.h>
+#include <stdlib.h>
 
-#define SIZE 5
+#define SIZE 6
 
 /* ***********************************************Declarations + structs ************************************************/
 
@@ -34,10 +35,22 @@ void display();
 
 
 struct enregist_client items[SIZE];
+struct Event* head = NULL;
 
+
+// system vars
 int front = -1, rear = -1;
-int Tnow = 0, TService = 2, T_start, T_arrival;
-int server = 0, num = 0;
+int Tnow;
+// 0: idle 1: active
+int server = 0;
+int T_start;
+
+// Workload for 
+int T_arrival, TService;
+
+//stats
+int Served_client , Mean_response, Mean_WaintingTime;
+
 
 /* ///////////////////////////////////////////END OF DECLARATIONS ///////////////////////////////////////////////////*/
 
@@ -82,10 +95,12 @@ void display() {
             
 
         }
+
+        printf("__________________________________________\n");
     }
 }
 
-void insertAtBeguinning_Event(struct Event** headRef, int type, float time) {
+void Schedual_event(struct Event** headRef, int type, float time) {
     struct Event* newNode = createNode(type, time);
     newNode->next = *headRef;
     *headRef = newNode;
@@ -96,77 +111,178 @@ void insertAtBeguinning_Event(struct Event** headRef, int type, float time) {
 
 // Function to print the elements of the list
 void printList(struct Event* head) {
+
+    printf("\n[TEST NODES >>>>>>>  EVENTS ENREGISTRE] \n");
+
     struct Event* temp = head;
     while (temp != NULL) {
         printf("\ntype : %d ", temp->type);
         printf("time : %f ", temp->time);
         temp = temp->next;
     }
+
     printf("\n");
 }
 
+
+void Init(){
+
+printf("\n >>>>>>>>>   INIT TEST \n");
+
+// system vars
+Tnow = 0;
+// 0: idle 1: active
+server = 0;
+
+
+// Workload for D/D/1
+T_arrival = 6;
+TService = 5;
+
+Schedual_event(&head, 1, Tnow);}
 
 /* ///////////////////////////////END OF QUEUE PROCEDURES //////////////////////////////////////////////////// */
 
 
 /* ___________________________________Main work _____________________________________________________________*/
+
+
+int num = 0;
+
 void P_arrival(){
     struct enregist_client Client;
-    struct Event* head = NULL;
-
+    
+    printf("\n >>>>>>>>>   P ARRIVAL TIME /\n");
+    printf("[TEST QUEUE >>>>>>>  CLIENTS ENREGISTRE] \n");
 
     /*Client enters the queue */
-
-    Client.T_arrival = Tnow;
+    Client.T_arrival = T_arrival;
     Client.T_service = TService;
     Client.ID = num;
     Client.T_start = T_start;
 
     enQueue(&Client);
-
+    display();
 
     /*Event Creation*/
     /*Type of event 1: arrival , 2: start , 3: end*/
     if(server == 0){
+   
+          Schedual_event(&head, 2, Tnow+T_arrival);
 
-    insertAtBeguinning_Event(&head, 2, Tnow+T_arrival);
+    }else { 
 
-    }
-    
-    
-    insertAtBeguinning_Event(&head, 1, Tnow);
+    Schedual_event(&head, 1, Tnow);}
+
+    //printList(head);
 
     num = num +1;
  
+}
+
+void Pstart_service(){
+
+    printf("\n >>>>>>>>>   Start service TIME \n");
+
+    server = 1;
+    items[front].T_start = Tnow;
+    printf("test TNOW : %f", Tnow);
+
+    Schedual_event(&head, 3, Tnow+items[front].T_service);
+
+    printList(head);
+
+}
+
+void P_Departure(){
+
+
+  //printf("/n >>>>>>>>>   P DEPARTURE TIME /n");
+  server = 0;
+  Mean_response = Mean_response + (Tnow + items[front].T_arrival);
+  Mean_WaintingTime = Mean_WaintingTime + (items[front].T_start - items[front].T_arrival);
+  
+
+  deQueue();
+
+  if (front != -1)
+  {
+    Schedual_event(&head, 2, Tnow);
+  }
+  
+
+  Served_client = Served_client + 1;
+  printList(head);
+  printf("c served :%d\n", Served_client);
+  printf("TNOW  %d\n", Tnow);
+  display();
+
+
+}
+
+
+void Get_Event(){
+    struct Event* temp = head;
+    float min = 100;
+
+    while (temp != NULL) {
+        if (min >= temp->time) {
+            min = temp->time;
+        }
+        temp = temp->next;
+    }
+
+    printf("\nminimum time event %f\n", min);
+}
+
+
+void Stats(){
+
+  printf("\nMean responce TIME >>> %f\n", Mean_response/Served_client);
+  printf("\nMean Wainting  TIME >>> %f\n", Mean_WaintingTime/Served_client);
+  printf("\nThroughput >>> %f\n", Served_client/Tnow);
+
+
 }
 
 /* __________________________________________END OF MAIN ___________________________________________________*/
 
 int main() {
 
-    printf("[TEST QUEUE >>>>>>>  CLIENTS ENREGISTRE] \n");
+  printf("Starting simulation...\n");
+    
+    // Initialize simulation
+    Init();
 
-    struct enregist_client client1 = {1, 10.0, 2.0, 0.0};
     P_arrival();
+    Pstart_service();
+    P_Departure();
+    //Stats();
 
-    printf("Enqueuing clients...\n");
-    enQueue(&client1);
+    // Run simulation loop
+    /*
+    while (Served_client <= 3) {
+        Get_Event();
+        Tnow = head->time;
+        int type = head->type;
+
+        switch (type) {
+            case 1: 
+                P_arrival();
+                break;
+            case 2:
+                Pstart_service();
+                break; 
+            case 3:
+                P_Departure();
+                break;
+        }
+    }
+
+    // Calculate and print statistics
+    Stats();*/
     
-
-    display();
-
-
-    printf("\n[TEST NODES >>>>>>>  EVENTS ENREGISTRE] \n");
-
-    struct Event* head2 = NULL;
-
-    // Insert some elements into the list
-    //insertAtBeguinning_Event(&head, 1, 0.13);
-    
-
-    // Print the elements of the list
-    printf("List: ");
-    printList(head2);
+    printf("Simulation complete.\n");
 
     return 0;
 }
