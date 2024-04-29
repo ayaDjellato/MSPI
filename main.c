@@ -6,107 +6,95 @@
 /* *********************************************** Declarations + structs ************************************************/
 
 // Define struct for client registration
-struct enregist_client {
+typedef struct enregist_client {
     int ID;
     float T_arrival, T_service, T_start;
-};
+    struct enregist_client *next;
+
+
+}enregist_client;
 
 // Define struct for event
-struct Event {
+typedef struct Event {
     int type;
     float time;
     struct Event* next;
-};
+}Event;
 
-// Function prototypes
-struct Event* createNode(int type, float time);
-void enQueue(struct enregist_client*);
-void deQueue();
-void display();
-void Schedual_event(struct Event** headRef, int type, float time);
-void printList(struct Event* head);
-void Init();
-void P_arrival();
-void Pstart_service();
-void P_Departure();
-struct Event* Get_Event();
-void Stats();
 
 // Global variables
 struct enregist_client items[SIZE];
-struct Event* head = NULL;
-int front = -1, rear = -1;
-float Tnow;
 int server;
-float T_start;
+float T_start, Tnow;
 float T_arrival, TService, Mean_response, Mean_WaintingTime;
 int Served_client;
+
+
+enregist_client *ClientQueue, *currentclient;
+Event *EventList, *currentevent;
 
 /* ****************************************** QUEUE PROCEDURES for client registration ***************************************************/
 
 // Function to create a new node
-struct Event* createNode(int type, float time) {
-    struct Event* newNode = (struct Event*)malloc(sizeof(struct Event));
-    if (newNode == NULL) {
-        printf("Memory allocation failed.\n");
-        exit(1);
+void addevent( Event *ev) {
+    if (EventList == NULL || (EventList)->time >= ev->time) {
+        ev->next = EventList;
+        EventList = ev;
+    } else {
+        Event *current = EventList;
+        while (current->next && (current->next->time < ev->time)) {
+            current = current->next;
+        }
+        ev->next = current->next;
+        current->next = ev;
     }
-    newNode->type = type;
-    newNode->time = time;
-    newNode->next = NULL;
-    return newNode;
 }
 
 // Function to enqueue a client
-void enQueue(struct enregist_client* Client) {
-    if (rear == SIZE - 1)
-        printf("\n");
-    else {
-        if (front == -1)
-            front = 0;
-        rear++;
-        items[rear] = *Client;
-    }
-}
-
-// Function to dequeue a client
-void deQueue() {
-    if (front == -1)
-        printf("\nQueue is Empty!!");
-    else {
-        printf("\nDeleted : %d", items[front].ID);
-        front++;
-        if (front > rear)
-            front = rear = -1;
-    }
-}
-
-// Function to display the queue
-void display() {
-    if (front == -1)
-        printf("\nQueue is Empty!!");
-    else {
-        for (int i = front; i <= rear; i++) {
-            printf("__________________________________________\n");
-            printf("Id >>  %d \n", items[i].ID);
-            printf("Arrival >>  %f \n", items[i].T_arrival);
-            printf("Service >>  %f \n", items[i].T_service);
-            printf("Start >>  %f \n", items[i].T_start);
+void addclient(enregist_client **cl ) {
+    if (ClientQueue == NULL) {
+        ClientQueue = *cl;
+    } else {
+        enregist_client *current = ClientQueue;
+        while (current->next!=NULL) {
+            current = current->next;
         }
-        printf("__________________________________________\n");
+        current->next = *cl;
+
     }
 }
+
+void CreateClient(int Served,float T_arrival,float ts,float start) {
+    enregist_client *Client = (enregist_client *) malloc(sizeof(enregist_client));
+    Client->T_arrival = T_arrival;
+    Client->T_service = ts;
+    Client->ID = Served;
+    Client->T_start = start;
+    Client->next = NULL;
+    addclient(&Client);
+
+    
+}
+enregist_client *getclient() {
+    enregist_client *current = ClientQueue;
+    ClientQueue = ClientQueue->next;
+    return current;
+}
+
+
 
 // Function to schedule an event
-void Schedual_event(struct Event** headRef, int type, float time) {
-    struct Event* newNode = createNode(type, time);
-    newNode->next = *headRef;
-    *headRef = newNode;
+void Schedual_event(int type, float time) {
+    Event *ev = (Event *) malloc(sizeof(Event));
+    ev->type = type;
+    ev->time = time;
+    ev->next = NULL;
+    addevent(ev);
 }
 
 // Function to print the elements of the event list
 void printList(struct Event* head) {
-    printf("\n[TEST NODES >>>>>>>  EVENTS ENREGISTRE] \n");
+    //printf("\n[TEST NODES >>>>>>>  EVENTS ENREGISTRE] \n");
     struct Event* temp = head;
     while (temp != NULL) {
         printf("\ntype : %d ", temp->type);
@@ -118,75 +106,78 @@ void printList(struct Event* head) {
 
 // Function to initialize simulation parameters
 void Init() {
-    printf("\n >>>>>>>>>   INIT TEST \n");
+    //printf("\n >>>>>>>>>   INIT TEST \n");
     Tnow = 0;
     server = 0;
-    T_arrival = 6;
-    TService = 5;
-    Schedual_event(&head, 1, Tnow);
-    printList(head);
+    T_arrival = 5;
+    TService = 25;
+   
+    
+    ClientQueue = NULL;
+    EventList = NULL;
+   Schedual_event( 1, Tnow); 
+   Mean_WaintingTime = 0;
+    Mean_response = 0;
 }
 
 /* _________________________________ Main work _____________________________________________________________*/
 
 // Function for client arrival event
 void P_arrival() {
-    struct enregist_client Client;
-    printf("\n >>>>>>>>>   P ARRIVAL TIME \n");
-    Client.T_arrival = T_arrival;
-    Client.T_service = TService;
-    Client.ID = Served_client;
-    Client.T_start = T_start;
-    enQueue(&Client);
+   
+
+    CreateClient(Served_client,Tnow,TService,T_start);
+
+
     if (server == 0) {
-        Schedual_event(&head, 2, Tnow + T_arrival);
-        printf("event 2 registered \n");
+        Schedual_event(2, Tnow );
+        //printf("event 2 registered \n");
     }
-    else {
-        Schedual_event(&head, 1, Tnow);
-        printf("event 1 registered \n");
-    }
+ 
+        Schedual_event( 1, Tnow + T_arrival);
+        //printf("event 1 registered \n");
     
    
 }
 
 // Function for starting service event
 void Pstart_service() {
-    printf("\n >>>>>>>>>   Start service TIME \n");
+    //printf("\n >>>>>>>>>   Start service TIME \n");
     server = 1;
-    items[front].T_start = Tnow;
+    currentclient = getclient();
+    currentclient->T_start = Tnow;
 
-    Schedual_event(&head, 3, Tnow + items[front].T_service);
+    Schedual_event( 3, Tnow + currentclient->T_service);
+   
 }
 
 // Function for client departure event
 void P_Departure() {
-    printf("\n >>>>>>>>>   P DEPARTURE TIME \n");
+    //printf("\n >>>>>>>>>   P DEPARTURE TIME \n");
     server = 0;
-    Mean_response = Mean_response + (Tnow + items[front].T_arrival);
-    Mean_WaintingTime = Mean_WaintingTime + (items[front].T_start - items[front].T_arrival);
-    deQueue();
+    Mean_response = Mean_response + (Tnow - currentclient->T_arrival);
+    Mean_WaintingTime = Mean_WaintingTime + (currentclient->T_start - currentclient->T_arrival);
+     //printf("\n %f Mean response TIME >>> %f\n", currentclient->T_arrival,  Mean_response);
+    // printf("\n %f Mean Waiting  TIME >>> %f\n",currentclient->T_start, Mean_WaintingTime);
 
-    if (front != -1) {
-        Schedual_event(&head, 2, Tnow);
-    }
     Served_client = Served_client + 1;
-    printf("c served :%d\n", Served_client);
-    head ->next;
+    free(currentclient);
+    if (ClientQueue != NULL) {
+        Schedual_event( 2, Tnow);
+    }
+    
+    //printf("c served :%d\n", Served_client);  
+    
+  
+
+    
 }
 
 // Function to get the next event
 struct Event* Get_Event() {
-    struct Event* temp = head;
-    if (temp != NULL) {
-        printf("DEBUG: Event fetched - Type: %d, Time: %f\n", temp->type, temp->time); // Debug print
-        
-    } else {
-        printf("DEBUG: No events in the list\n"); // Debug print
-    }
-    
-    
-    return temp;
+    Event *current = EventList;
+    EventList = EventList->next;
+    return current;
 }
 
 // Function to calculate and print statistics
@@ -194,7 +185,11 @@ void Stats() {
     printf("\nMean response TIME >>> %f\n", Mean_response / Served_client);
     printf("\nMean Waiting  TIME >>> %f\n", Mean_WaintingTime / Served_client);
     printf("\nThroughput >>> %f\n", Served_client / Tnow);
-}
+
+ 
+ 
+ } 
+ ;
 
 /* __________________________________________END OF MAIN ___________________________________________________*/
 
@@ -204,12 +199,12 @@ int main() {
     Init();
     
     
-    while (Served_client <= 2) {
-        struct Event* temp = Get_Event();
-        Tnow = temp->time;
-        type = temp->type;
-        printf("TEST TNOW: %f, Type: %d\n", Tnow, type);
-        P_arrival();
+    while (Served_client <= 1000) {
+        currentevent = Get_Event();
+        Tnow = currentevent->time;
+        type = currentevent->type;
+        //printf("TEST TNOW: %f, Type: %d\n", Tnow, type);
+      
         switch (type) {
         case 1:
             P_arrival();
